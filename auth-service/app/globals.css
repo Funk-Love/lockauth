@@ -1,0 +1,240 @@
+@import "tailwindcss";
+
+/*
+ * LockAuth 设计令牌
+ * 和 LockAI 同一家族：暖黑底、Fraunces 字标、两道并行细竖线。
+ * 区别在强调色——铜绿，老铜锁放久了生出来的那层锈色；LockAI 是琥珀。
+ */
+:root {
+  color-scheme: dark;
+
+  --bg: oklch(0.158 0.006 62);
+  --bg-deep: oklch(0.128 0.005 62);
+  --surface: oklch(0.198 0.007 62);
+  --surface-2: oklch(0.228 0.008 62);
+  --surface-3: oklch(0.262 0.008 62);
+  --line-soft: oklch(0.24 0.006 62);
+  --line: oklch(0.285 0.007 62);
+  --line-strong: oklch(0.36 0.008 62);
+
+  --fg: oklch(0.945 0.008 82);
+  --fg-soft: oklch(0.79 0.009 80);
+  --fg-faint: oklch(0.61 0.008 75);
+  --fg-ghost: oklch(0.46 0.007 70);
+
+  --accent: oklch(0.77 0.074 176);
+  --accent-ink: oklch(0.86 0.06 176);
+  --accent-deep: oklch(0.52 0.062 182);
+  --accent-soft: oklch(0.77 0.074 176 / 0.12);
+  --accent-line: oklch(0.77 0.074 176 / 0.36);
+  /* 图表专用：比 accent 暗一点、饱和一点，过了 dataviz 校验（暗底 L 0.48–0.67 / C ≥ 0.1） */
+  --chart: oklch(0.66 0.105 176);
+  --chart-wash: oklch(0.66 0.105 176 / 0.1);
+
+  --brass: oklch(0.78 0.1 78);
+  --amber: oklch(0.745 0.138 56);
+  --danger: oklch(0.71 0.14 27);
+  --danger-soft: oklch(0.71 0.14 27 / 0.13);
+  --warn: oklch(0.82 0.11 85);
+
+  --ink: oklch(0.945 0.008 82);
+  --ink-fg: oklch(0.17 0.006 62);
+
+  --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.35);
+  --shadow-md: 0 1px 2px oklch(0 0 0 / 0.3), 0 10px 26px -10px oklch(0 0 0 / 0.55);
+  --shadow-lg: 0 2px 8px oklch(0 0 0 / 0.35), 0 34px 70px -24px oklch(0 0 0 / 0.75);
+  --edge: inset 0 1px 0 oklch(1 0 0 / 0.045);
+
+  --radius: 14px;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-snap: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-deep: var(--bg-deep);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-line-soft: var(--line-soft);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-fg: var(--fg);
+  --color-fg-soft: var(--fg-soft);
+  --color-fg-faint: var(--fg-faint);
+  --color-fg-ghost: var(--fg-ghost);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-deep: var(--accent-deep);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-line: var(--accent-line);
+  --color-chart: var(--chart);
+  --color-chart-wash: var(--chart-wash);
+  --color-brass: var(--brass);
+  --color-amber: var(--amber);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-warn: var(--warn);
+  --color-ink: var(--ink);
+  --color-ink-fg: var(--ink-fg);
+
+  --font-sans: var(--font-geist-sans), "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-serif-sc: var(--font-noto-serif-sc), "Songti SC", "STSong", "SimSun", serif;
+
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+
+  --animate-rise: rise 0.7s var(--ease-out) both;
+  --animate-fade: fade 0.5s ease both;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(10px); filter: blur(4px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+
+@keyframes fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+@layer base {
+  html {
+    background: var(--bg);
+    -webkit-tap-highlight-color: transparent;
+    scrollbar-color: var(--line-strong) transparent;
+    scrollbar-width: thin;
+  }
+
+  body {
+    min-height: 100dvh;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: var(--accent-soft);
+    color: var(--accent-ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent-line);
+    outline-offset: 2px;
+  }
+
+  input, textarea, select, button {
+    font: inherit;
+    color: inherit;
+  }
+
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--fg);
+    -webkit-box-shadow: 0 0 0 1000px var(--surface) inset;
+    caret-color: var(--fg);
+    transition: background-color 9999s;
+  }
+}
+
+/* 组件层：放进 layer，工具类（rounded-*、p-* 等）才能覆盖它们 */
+@layer components {
+  /* ---------- 质感层 ---------- */
+
+  /* 胶片颗粒：极淡，只为了让大面积暗色不像一块死平的屏幕 */
+  .grain::after {
+    content: "";
+    position: fixed;
+    inset: -50%;
+    pointer-events: none;
+    z-index: 60;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    /* 不用 mix-blend-mode：它在 WebGL 画布这种独立合成层上会显出一块矩形色差 */
+  }
+
+  /* 两道并行细竖线：家族母题（锁孔 / 背带） */
+  .hairlines {
+    position: relative;
+  }
+  .hairlines::before,
+  .hairlines::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    pointer-events: none;
+  }
+  .hairlines::before {
+    left: 0;
+    background: linear-gradient(to bottom, transparent, var(--line) 18%, var(--line) 82%, transparent);
+  }
+  .hairlines::after {
+    left: 5px;
+    background: linear-gradient(to bottom, transparent, var(--accent-line) 30%, transparent 70%);
+    opacity: 0.8;
+  }
+
+  /* 雾面玻璃板 */
+  .slab {
+    background:
+      linear-gradient(180deg, oklch(1 0 0 / 0.035), oklch(1 0 0 / 0.012) 40%, transparent),
+      oklch(0.19 0.007 62 / 0.72);
+    border: 1px solid oklch(1 0 0 / 0.07);
+    box-shadow: var(--edge), var(--shadow-lg);
+    backdrop-filter: blur(22px) saturate(120%);
+    -webkit-backdrop-filter: blur(22px) saturate(120%);
+  }
+
+  /* 控制台卡片：顶边一线高光 + 柔和投影 */
+  .card {
+    background: linear-gradient(180deg, oklch(1 0 0 / 0.022), transparent 60%), var(--surface);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius);
+    box-shadow: var(--edge), var(--shadow-sm);
+  }
+
+  .skeleton {
+    background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 50%, var(--surface-2) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.6s linear infinite;
+    border-radius: 8px;
+  }
+
+  .font-display-soft {
+    font-family: var(--font-display);
+    font-variation-settings: "SOFT" 100, "WONK" 1, "opsz" 72;
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

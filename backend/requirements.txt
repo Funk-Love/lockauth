@@ -1,0 +1,27 @@
+# (keep this file ASCII: pip on Windows reads it with the system code page)
+
+# Web
+fastapi==0.141.1
+uvicorn[standard]==0.53.0
+
+# Production: gunicorn manages processes, uvicorn worker runs ASGI
+gunicorn==26.2.0
+uvicorn-worker==0.4.0
+
+# Database
+SQLAlchemy==2.0.54
+
+# Auth: JWT format stays compatible with tokens issued by flask-jwt-extended
+PyJWT==2.14.0
+bcrypt==5.0.0
+
+# Avatars on Aliyun OSS (lock-publicfiles)
+oss2==2.19.1
+
+# FastAPI TestClient
+httpx==0.28.1
+
+python-dotenv==1.2.3
+
+# Tests
+pytest==9.1.1

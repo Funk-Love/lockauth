@@ -1,0 +1,22 @@
+# 子目录各有自己的 .gitignore：auth-service/（Next.js）、backend/（.env、instance/）
+
+# 打包产物、运行日志、测试缓存
+dist/
+logs/
+.pytest_cache/
+__pycache__/
+
+# 数据库和备份：线上库的副本不进库
+*.db
+*.db.bak*
+*.db-wal
+*.db-shm
+
+# 编辑器
+.vscode/
+
+# 只留在维护者本地、不公开：上线手册（服务器布局）、systemd 模板、安全审计报告
+DEPLOY.md
+deploy/
+report/
+SEC-*.pdf
