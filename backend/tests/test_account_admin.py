@@ -1,5 +1,6 @@
 """个人中心、授权跳转、管理后台、审计、头像代理、迁移。"""
 
+import shutil
 import sqlite3
 import tempfile
 import time
@@ -256,6 +257,29 @@ def test_avatar(client, db, monkeypatch):
     assert res["user"]["avatar_url"] is None and second["key"] in bucket.deleted
 
 
+def test_service_avatars(client, db, monkeypatch):
+    from config import settings
+
+    monkeypatch.setattr(settings, "service_keys", {"lockcloud": "cloud-key", "lockai": "ai-key"})
+    user = make_user(db, email="Member@zju.edu.cn")
+    make_user(db, email="other@zju.edu.cn", name="小钥")
+    user.avatar_key = f"avatars/{user.id}/{'a' * 32}.png"
+    db.commit()
+
+    assert client.get("/api/auth/service/avatars").status_code == 401
+    assert client.get("/api/auth/service/avatars", headers={"X-Service-Key": "wrong"}).status_code == 401
+    # 用户的 token 不能代替服务密钥
+    assert client.get("/api/auth/service/avatars", headers=auth_header(user)).status_code == 401
+
+    res = client.get("/api/auth/service/avatars?style=avatarsm", headers={"X-Service-Key": "cloud-key"}).json()
+    assert res["success"] is True
+    assert [set(u) for u in res["users"]] == [{"id", "email", "avatar_url"}] * 2
+    first, second = res["users"]
+    assert first["email"] == "member@zju.edu.cn" and "w_64" in first["avatar_url"]
+    assert second["avatar_url"] is None
+    assert client.get("/api/auth/service/avatars", headers={"X-Service-Key": "ai-key"}).status_code == 200
+
+
 def test_production_requires_jwt_secret(monkeypatch):
     """代码公开，默认密钥谁都知道：生产环境没配真密钥就不许启动。"""
     from config import DEV_JWT_SECRET, Settings
@@ -309,3 +333,4 @@ def test_migrate_legacy_schema():
     session.close()
     database.engine.dispose()
     database.init_engine("sqlite:///:memory:")
+    shutil.rmtree(path.parent, ignore_errors=True)

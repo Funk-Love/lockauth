@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from config import settings
 from database import get_db
-from deps import RequestMeta, admin_user, current_user, request_meta, token_payload
+from deps import RequestMeta, admin_user, current_user, request_meta, service_caller, token_payload
 from errors import ApiError, ErrorCode, invalid
 from models import EmailBlacklist, EmailWhitelist, User
 from ratelimit import enforce, limiter, too_many
@@ -336,6 +336,17 @@ def avatars(body: AvatarsBody, db: Session = Depends(get_db), _: dict = Depends(
 @router.get("/me/avatar")
 def my_avatar(style: str = Query(default="avatarmd"), user: User = Depends(current_user)):
     return avatar.result(user, style)
+
+
+@router.get("/service/avatars")
+def service_avatars(style: str = Query(default="avatarmd"), db: Session = Depends(get_db),
+                    service: str = Depends(service_caller)):
+    """给其他服务的后端：全部用户的头像，一次拿全自己缓存。只给 id、邮箱、头像地址。"""
+    enforce(f"service-avatars:{service}", 30, 60)
+    users = db.query(User.id, User.email, User.avatar_key).order_by(User.id).all()
+    return {"success": True, "users": [
+        {"id": uid, "email": email.lower(), "avatar_url": avatar.url(key, style)} for uid, email, key in users
+    ]}
 
 
 # ---------------------------------------------------------------- 新：已登录时一键授权跳转

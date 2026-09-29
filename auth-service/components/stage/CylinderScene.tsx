@@ -18,11 +18,12 @@
 
 /* eslint-disable react-hooks/immutability -- three.js 的场景、相机、材质本来就是可变对象，R3F 的惯用法就是直接改它们 */
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { toCreasedNormals } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { contactShadowTexture, createTextures, studioEnvironment } from './materials';
+import { contactShadowTexture, createTextures, loadStagePixels, studioEnvironment } from './materials';
+import type { StagePixels } from './pixels';
 import { resolvePose, stepSpring, type Spring, type StageStatus } from './motion';
 
 export type { StageStatus } from './motion';
@@ -342,17 +343,27 @@ function syncPlanes(target: THREE.Plane[], object: THREE.Object3D) {
 
 // ------------------------------------------------------------------ 场景
 
-function Environment({ lite = false }: { lite?: boolean }) {
+function Environment({ lite = false, onReady }: { lite?: boolean; onReady: () => void }) {
   const { gl, scene } = useThree();
   useEffect(() => {
-    const env = studioEnvironment(gl, lite);
-    scene.environment = env.texture;
-    scene.environmentIntensity = 0.85;
+    let alive = true;
+    let env: THREE.WebGLRenderTarget | null = null;
+    studioEnvironment(gl, lite).then((target) => {
+      if (!alive) {
+        target.dispose();
+        return;
+      }
+      env = target;
+      scene.environment = target.texture;
+      scene.environmentIntensity = 0.85;
+      onReady();
+    });
     return () => {
+      alive = false;
       scene.environment = null;
-      env.dispose();
+      env?.dispose();
     };
-  }, [gl, scene, lite]);
+  }, [gl, scene, lite, onReady]);
   return null;
 }
 
@@ -396,7 +407,7 @@ export function createLockGeometry(lite: boolean) {
     };
 }
 
-function Lock({ progress, pulse, status, open = false, lite = false, reducedMotion }: StageProps) {
+function Lock({ progress, pulse, status, open = false, lite = false, reducedMotion, pixels }: StageProps & { pixels: StagePixels }) {
   const root = useRef<THREE.Group>(null);
   const body = useRef<THREE.Group>(null);
   const plug = useRef<THREE.Group>(null);
@@ -422,7 +433,7 @@ function Lock({ progress, pulse, status, open = false, lite = false, reducedMoti
   // --------------------------------------------------------------- 资源
   const geo = useMemo(() => createLockGeometry(lite), [lite]);
 
-  const tex = useMemo(() => createTextures(lite, PATINA_RINGS), [lite]);
+  const tex = useMemo(() => createTextures(lite, pixels), [lite, pixels]);
   const contactTex = useMemo(() => contactShadowTexture(lite), [lite]);
 
   const mat = useMemo(() => {
@@ -743,6 +754,23 @@ function Rig({ lite }: { lite?: boolean }) {
   return null;
 }
 
+/** 场景搭好后先在后台编译着色器（浏览器支持时并行编译），编完再开始画，第一帧不会卡住页面 */
+function Precompile({ onDone }: { onDone: () => void }) {
+  const { gl, scene, camera } = useThree();
+  useEffect(() => {
+    let alive = true;
+    gl.compileAsync(scene, camera)
+      .catch(() => undefined)
+      .then(() => {
+        if (alive) onDone();
+      });
+    return () => {
+      alive = false;
+    };
+  }, [gl, scene, camera, onDone]);
+  return null;
+}
+
 function FrameReady({ onReady, onUnavailable }: { onReady?: () => void; onUnavailable?: () => void }) {
   const gl = useThree((s) => s.gl);
   const ready = useRef(false);
@@ -768,18 +796,35 @@ function FrameReady({ onReady, onUnavailable }: { onReady?: () => void; onUnavai
 export default function CylinderScene({ onReady, onUnavailable, ...props }: StageProps & { onReady?: () => void; onUnavailable?: () => void }) {
   const { lite, reducedMotion } = props;
   const invalidateRef = useRef<(() => void) | null>(null);
+  // 纹理在 Worker 里算，环境贴图和着色器在后台编译；都好了才开始画
+  const [pixels, setPixels] = useState<StagePixels | null>(null);
+  const [envReady, setEnvReady] = useState(false);
+  const [compiled, setCompiled] = useState(false);
+  const onEnvReady = useCallback(() => setEnvReady(true), []);
+  const onCompiled = useCallback(() => setCompiled(true), []);
+
+  useEffect(() => {
+    let alive = true;
+    loadStagePixels(!!lite, PATINA_RINGS).then((p) => {
+      if (alive) setPixels(p);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [lite]);
 
   // 减少动态效果时只在状态变化时重画
   useEffect(() => {
     if (reducedMotion) invalidateRef.current?.();
-  }, [props.progress, props.status, props.open, reducedMotion]);
+  }, [props.progress, props.status, props.open, reducedMotion, compiled]);
 
   return (
     <div className="absolute inset-0">
       <Canvas
         dpr={lite ? [1, 1.25] : [1, 1.5]}
-        frameloop={reducedMotion ? 'demand' : 'always'}
-        shadows={lite ? false : { type: THREE.PCFSoftShadowMap }}
+        frameloop={!compiled ? 'never' : reducedMotion ? 'demand' : 'always'}
+        // three 0.186 起没有 PCFSoftShadowMap 了（会退回 PCF），直接写 PCF，预编译的着色器才对得上
+        shadows={lite ? false : { type: THREE.PCFShadowMap }}
         gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
         camera={{ fov: 27, near: 0.1, far: 60, position: [6.6, 3.6, 10.2] }}
         onCreated={({ gl, invalidate }) => {
@@ -791,7 +836,7 @@ export default function CylinderScene({ onReady, onUnavailable, ...props }: Stag
         }}
       >
         <Rig lite={lite} />
-        <Environment lite={lite} />
+        <Environment lite={lite} onReady={onEnvReady} />
         <hemisphereLight args={['#efe6d8', '#15110e', 0.18]} />
         {/* 主光：左上前方的柔光，投影 */}
         <directionalLight
@@ -813,7 +858,8 @@ export default function CylinderScene({ onReady, onUnavailable, ...props }: Stag
         <directionalLight position={[5, 3, -5.5]} intensity={0.8} color="#e0e7ec" />
         {/* 给剖面一点正面补光 */}
         <directionalLight position={[3, 1.2, 8]} intensity={0.45} color="#fff1e0" />
-        <Lock {...props} />
+        {pixels && <Lock {...props} pixels={pixels} />}
+        {pixels && envReady && !compiled && <Precompile onDone={onCompiled} />}
         <FrameReady onReady={onReady} onUnavailable={onUnavailable} />
       </Canvas>
     </div>

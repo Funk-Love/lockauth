@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { runInThisContext } from 'node:vm';
 import ts from 'typescript';
 
@@ -17,7 +17,9 @@ function load(relative) {
     if (specifier.startsWith('./')) return load(path.resolve(path.dirname(filename), `${specifier}.ts`));
     return nativeRequire(specifier);
   };
-  const { outputText } = ts.transpileModule(readFileSync(filename, 'utf8'), {
+  // CommonJS 里没有 import.meta（materials.ts 用它定位 Worker），换成文件地址
+  const source = readFileSync(filename, 'utf8').replaceAll('import.meta.url', JSON.stringify(pathToFileURL(filename).href));
+  const { outputText } = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true },
     fileName: filename,
   });

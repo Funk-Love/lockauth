@@ -23,6 +23,16 @@ def _bool(name: str, default: bool) -> bool:
     return raw.split("#", 1)[0].strip().lower() in ("1", "true", "yes", "on")
 
 
+def _service_keys() -> dict[str, str]:
+    """SERVICE_KEYS="lockcloud:<密钥>,lockai:<密钥>" → {服务名: 密钥}。"""
+    keys = {}
+    for item in _list("SERVICE_KEYS", ""):
+        name, _, key = item.partition(":")
+        if name.strip() and key.strip():
+            keys[name.strip()] = key.strip()
+    return keys
+
+
 def _list(name: str, default: str) -> list[str]:
     raw = os.getenv(name, default)
     return [item.strip() for item in raw.split(",") if item.strip()]
@@ -56,6 +66,9 @@ class Settings:
     ))
 
     sso_frontend_url: str | None = field(default_factory=lambda: os.getenv("SSO_FRONTEND_URL") or None)
+
+    # 其他服务的后端调 /api/auth/service/* 用的密钥，每个服务一把
+    service_keys: dict[str, str] = field(default_factory=_service_keys)
 
     # 头像存在阿里云 OSS 的公共资源桶（杭州），见 services/avatar.py
     oss_access_key_id: str = field(default_factory=lambda: os.getenv("OSS_ACCESS_KEY_ID", ""))

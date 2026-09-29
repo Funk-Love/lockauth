@@ -38,7 +38,7 @@ npm run dev          # http://localhost:3000
 app/                   页面
 components/
   brand/               标志（锁芯截面：外圈 + 锁胆 + 两道钥匙槽）和字标
-  stage/               入口页的 3D 锁芯（CylinderScene）、程序生成的材质和摄影棚环境（materials），以及降级用的 SVG
+  stage/               入口页的 3D 锁芯（CylinderScene）、程序生成的材质和摄影棚环境（materials），以及加载时和不支持 WebGL 时的 CSS 占位（LockStage）
   entrance/            入口页外壳和三个表单；StageContext 让表单驱动 3D 弹子
   console/             控制台外壳、会员卡、服务卡、时间线、图表
   ui/                  按钮、输入框、验证码框、对话框、提示条等

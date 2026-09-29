@@ -1,12 +1,14 @@
-"""请求级依赖：客户端 IP、当前用户、管理员。"""
+"""请求级依赖：客户端 IP、当前用户、管理员、调用方服务。"""
 
 from __future__ import annotations
 
+import hmac
 from dataclasses import dataclass
 
 from fastapi import Depends, Request
 from sqlalchemy.orm import Session
 
+from config import settings
 from database import get_db
 from errors import ApiError, ErrorCode
 from models import EmailBlacklist, User
@@ -38,6 +40,15 @@ class RequestMeta:
 def request_meta(request: Request) -> RequestMeta:
     ua = request.headers.get("user-agent")
     return RequestMeta(ip=client_ip(request), user_agent=ua[:500] if ua else None)
+
+
+def service_caller(request: Request) -> str:
+    """服务之间调用：X-Service-Key 对上哪个服务的密钥就是哪个服务。"""
+    given = request.headers.get("x-service-key") or ""
+    for name, key in settings.service_keys.items():
+        if given and hmac.compare_digest(given.encode(), key.encode()):
+            return name
+    raise ApiError(ErrorCode.AUTH_INVALID_TOKEN, "服务密钥无效", 401)
 
 
 def bearer_token(request: Request) -> str:

@@ -19,7 +19,7 @@ python app.py                     # http://127.0.0.1:5000，/docs 是接口文�
 
 没有 `DATABASE_URL` 时用 `instance/auth.db`。启动时会自动建表、补列（见下文"数据库"）。
 
-测试：在 `lockauth` 环境里跑 `pytest`（59 个用例，内存数据库，不发邮件，不连 OSS）。
+测试：在 `lockauth` 环境里跑 `pytest`（60 个用例，内存数据库，不发邮件，不连 OSS）。
 
 ## 目录
 
@@ -59,6 +59,7 @@ python app.py                     # http://127.0.0.1:5000，/docs 是接口文�
 | POST | `/sso/authorize` ★ | 已登录时直接拿跳转地址，不用再输密码 |
 | GET | `/whitelist-emails` | 白名单邮箱（**2.0 起需要管理员**） |
 | GET | `/avatar/by-email`、`/avatar/{id}`、`/me/avatar`；POST `/avatars` | 查头像地址（公开地址，不签名） |
+| GET | `/service/avatars` | 其他服务的后端批量查头像：全部用户的 `id`、`email`、`avatar_url`。带 `X-Service-Key`，不要用户 Token |
 
 **个人中心**（`/api/auth/me`，都是 ★）
 
@@ -111,6 +112,7 @@ python app.py                     # http://127.0.0.1:5000，/docs 是接口文�
 | `CORS_ORIGINS` | 逗号分隔 |
 | `ALLOWED_REDIRECT_URIS` | 可以跳回的地址，支持 `https://*.funk-and.love`（`*` 只匹配一级子域名） |
 | `SSO_FRONTEND_URL` | 登录页地址 |
+| `SERVICE_KEYS` | 调 `/service/*` 的服务密钥，`lockcloud:<密钥>,lockai:<密钥>` |
 | `OSS_*`、`PUBLIC_FILES_URL` | 头像存储：阿里云 OSS 的 `lock-publicfiles` 桶，`avatars/` 公开可读 |
 | `AUDIT_RETENTION_DAYS` | 登录记录保留天数，默认 180 |
 
@@ -126,4 +128,4 @@ python app.py                     # http://127.0.0.1:5000，/docs 是接口文�
 - 注册时发验证码会先检查邮箱是否已注册 / 被封禁，不再白发一封信。
 - bcrypt 升到 5.x，超过 72 字节的密码显式截断（和旧版实际效果一致）。
 - 所有登录、注册、改密码和管理操作都写进 `auth_logs`，控制台和管理后台里能看到。
-- 头像归 Auth 管，存在 `lock-publicfiles/avatars/{用户 id}/`。`verify-token` 返回 `avatar_key` 和 `avatar_url`，其他服务登录时同步。
+- 头像归 Auth 管，存在 `lock-publicfiles/avatars/{用户 id}/`。`verify-token` 返回 `avatar_key` 和 `avatar_url`；其他服务要显示别人的头像，后端用 `/service/avatars` 批量取。
